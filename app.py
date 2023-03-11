@@ -1,5 +1,4 @@
 # Importing essential libraries and modules
-
 from flask import Flask, render_template, request, Markup
 import numpy as np
 import pandas as pd
@@ -13,7 +12,7 @@ import torch
 from torchvision import transforms
 from PIL import Image
 from utils.model import ResNet9
-# ==============================================================================================
+import json
 
 # -------------------------LOADING THE TRAINED MODELS -----------------------------------------------
 
@@ -135,17 +134,19 @@ def home():
     title = 'Farming Assistant - Home'
     return render_template('index.html', title=title)
 
-# render crop recommendation form page
-
-
-@ app.route('/crop-recommend')
-def crop_recommend():
+# render crop recommendation manually form page
+@ app.route('/crop-recommend-manual')
+def crop_recommend_manual():
     title = 'Farming Assistant - Crop Recommendation'
     return render_template('crop.html', title=title)
 
+# render crop recomendation form page
+@app.route('/crop-recommend')
+def crop_recommend():
+    title = 'Farming Assistant - Crop Recommendation'
+    return render_template('crop-auto.html', title=title)
+
 # render fertilizer recommendation form page
-
-
 @ app.route('/fertilizer')
 def fertilizer_recommendation():
     title = 'Farming Assistant - Fertilizer Suggestion'
@@ -167,41 +168,60 @@ def fertilizer_recommendation():
 @ app.route('/crop-predict', methods=['POST'])
 def crop_prediction():
     title = 'Farming Assistant - Crop Recommendation'
-
+    
     if request.method == 'POST':
-        N = int(request.form['nitrogen'])
-        P = int(request.form['phosphorous'])
-        K = int(request.form['pottasium'])
-        ph = float(request.form['ph'])
-        rainfall = float(request.form['rainfall'])
-
-        # state = request.form.get("stt")
-        city = request.form.get("city")
-
-        if weather_fetch(city) != None:
-            temperature, humidity = weather_fetch(city)
-            data = np.array([[N, P, K, temperature, humidity, ph, rainfall]])
-            my_prediction = crop_recommendation_model.predict(data)
-            final_prediction = my_prediction[0]
-
-            return render_template('crop-result.html', prediction=final_prediction, title=title)
-
+        content_type = request.headers.get('Content-Type')
+        N = 0
+        P = 0
+        K = 0
+        ph = 0
+        rainfall = 0
+        temperature = 0
+        humidity = 0
+        if (content_type == 'application/json'):
+            data = request.get_json()
+            jsonData = json.loads(data['data'])
+            N = round(jsonData['n'])
+            P = round(jsonData['p'])
+            K = round(jsonData['k'])
+            ph = jsonData['ph']
+            rainfall = jsonData['rainfall']
+            temperature = jsonData['temperature']
+            humidity = jsonData['humidity']
         else:
+            N = int(request.form['nitrogen'])
+            P = int(request.form['nitrogen'])
+            K = int(request.form['pottasium'])
+            ph = float(request.form['ph'])
+            rainfall = float(request.form['rainfall'])
+            
+            city = request.form.get("city")
 
-            return render_template('try_again.html', title=title)
+            if weather_fetch(city) != None:
+                temperature, humidity = weather_fetch(city)
+            else:
+                return render_template('try_again.html', title=title)
+            
+        data_for_prediction = np.array([[N, P, K, temperature, humidity, ph, rainfall]])
+        my_prediction = crop_recommendation_model.predict(data_for_prediction)
+        final_prediction = my_prediction[0]
+        print(final_prediction)
+        return render_template('crop-result.html', prediction=final_prediction, title=title)
 
 # render fertilizer recommendation result page
-
-
 @ app.route('/fertilizer-predict', methods=['POST'])
 def fert_recommend():
     title = 'Farming Assistant - Fertilizer Suggestion'
 
     crop_name = str(request.form['cropname'])
-    N = int(request.form['nitrogen'])
-    P = int(request.form['phosphorous'])
-    K = int(request.form['pottasium'])
+    N = round(float(request.form['nitrogen']))
+    P = round(float(request.form['phosphorous']))
+    K = round(float(request.form['pottasium']))
     # ph = float(request.form['ph'])
+    print(crop_name, N, P, K)
+    if not crop_name or crop_name == "Select crop" or not N or N == "" or not P or P == "" or not K or K == "":
+        print("VALUE NOT FOUND")
+        return render_template('try_again.html', title=title)
 
     df = pd.read_csv('Data/fertilizer.csv')
 

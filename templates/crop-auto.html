@@ -1,0 +1,271 @@
+{% extends 'layout.html' %} {% block body %}
+
+<style>
+  html body {
+    background-color: rgb(206, 206, 228);
+  }
+  .col-sm {
+    border: solid;
+    margin-bottom: 27px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 12px;
+    background-color: wheat;
+  }
+  .sc-gauge {
+    width: 200px;
+    /* height: 200px;
+    margin: 50px 100px; */
+  }
+  .sc-background {
+    position: relative;
+    height: 100px;
+    margin-bottom: 10px;
+    background-color: white;
+    border-radius: 150px 150px 0 0;
+    overflow: hidden;
+    text-align: center;
+  }
+  .sc-container {
+    width: 100%;
+    height: 22px;
+  }
+  .sc-label {
+    font-weight: bolder;
+    text-align: center;
+  }
+  .sc-mask {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    left: 20px;
+    height: 80px;
+    background-color: #cecee4;
+    border-radius: 150px 150px 0 0;
+  }
+  .sc-percentage {
+    position: absolute;
+    top: 100px;
+    left: -200%;
+    width: 400%;
+    height: 400%;
+    margin-left: 100px;
+    background-color: #00aeef;
+  }
+  .sc-percentage {
+    transform: rotate(158deg);
+    transform-origin: top center;
+  }
+  .sc-min {
+    float: left;
+  }
+  .sc-max {
+    float: right;
+  }
+  .sc-value {
+    position: absolute;
+    top: 35%;
+    left: 0;
+    width: 100%;
+    font-size: 48px;
+    font-weight: 700;
+  }
+  .js-plotly-plot .plotly .main-svg {
+    background-color: transparent !important;
+  }
+  .js-plotly-plot .plotly .modebar {
+    display: none !important;
+  }
+</style>
+
+<script src="../static/scripts/data.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.18.2.min.js"></script>
+
+<br /><br />
+<h2 style="text-align: center; margin: 0px; color: black">
+  <b
+    >Find out the most suitable crop to grow in your farm based on your
+    locations data.</b
+  >
+</h2>
+<br />
+<div class="d-flex justify-content-center">
+  <button
+    onClick="predictCropByCurrentData()"
+    type="submit"
+    class="btn btn-info"
+    style="
+      color: white;
+      font-weight: bold;
+      border-radius: 12px;
+      font-size: 21px;
+      margin-bottom: 12px;
+    "
+  >
+    Click here to Predict
+  </button>
+</div>
+<div class="container">
+  <div class="row">
+    <div class="col-sm">
+      <div id="n-chart"></div>
+      <h2 class="sc-label">Nitrogen (N)</h2>
+    </div>
+    <div class="col-sm">
+      <div id="p-chart"></div>
+      <h2 class="sc-label">Phosphorus (P)</h2>
+    </div>
+    <div class="col-sm">
+      <div id="k-chart"></div>
+      <h2 class="sc-label">Pottasium (K)</h2>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-sm">
+      <div id="temperature-chart"></div>
+      <h2 class="sc-label">Temperature</h2>
+    </div>
+    <div class="col-sm">
+      <div id="humidity-chart"></div>
+      <h2 class="sc-label">Humidity</h2>
+    </div>
+    <div class="col-sm">
+      <div id="ph-chart"></div>
+      <h2 class="sc-label">PH</h2>
+    </div>
+    <div class="col-sm">
+      <div id="rainfall-chart"></div>
+      <h2 class="sc-label">Rainfall</h2>
+    </div>
+  </div>
+</div>
+
+<h2 style="text-align: center; margin: 0px; color: black">
+  <b>You can also add values manually to get accurate crop.</b>
+</h2>
+<br />
+<div class="d-flex justify-content-center">
+  <a href="{{ url_for('crop_recommend_manual') }}">
+    <button
+      type="submit"
+      class="btn btn-info"
+      style="
+        color: white;
+        font-weight: bold;
+        border-radius: 12px;
+        font-size: 21px;
+        margin-bottom: 12px;
+      "
+    >
+      Check using manual values
+    </button>
+  </a>
+</div>
+
+<script>
+  onload = async (e) => {
+    let localLocation = JSON.parse(localStorage.getItem("userLocation"));
+    if (!localLocation) {
+      localLocation = await getCurrentLocation();
+    }
+    console.log(localLocation);
+    let currentSoilData = await getData(localLocation.state.name);
+    localStorage.setItem("currentSoilData", JSON.stringify(currentSoilData));
+    for (let i in currentSoilData) {
+      plotChart(i, currentSoilData[i]);
+    }
+  };
+  function plotChart(id, value) {
+    let color = "green";
+    switch (id) {
+      case "n":
+        color = "green";
+        break;
+      case "p":
+        color = "blue";
+        break;
+      case "k":
+        color = "red";
+        break;
+      case "temperature":
+        color = "orange";
+        break;
+      case "humidity":
+        color = "purple";
+        break;
+      case "ph":
+        color = "yellow";
+        break;
+      case "rainfall":
+        color = "brown";
+        break;
+      default:
+        color = "green";
+        break;
+    }
+    var data = [
+      {
+        type: "indicator",
+        mode: "gauge+number",
+        value,
+        gauge: {
+          bar: { color },
+          borderwidth: 2,
+        },
+      },
+    ];
+
+    var layout = {
+      width: 250,
+      height: 150,
+      margin: { t: 25, r: 25, l: 25, b: 25 },
+    };
+    id = id + "-chart";
+    Plotly.newPlot(id, data, layout);
+  }
+
+  function getCurrentLocation() {
+    var requestOptions = {
+      method: "GET",
+    };
+
+    return new Promise((resolve, reject) => {
+      fetch(
+        "https://api.geoapify.com/v1/ipinfo?&apiKey=09bb822853f7414cbac4242f23087b68",
+        requestOptions
+      )
+        .then((response) => response.json())
+        .then((result) => {
+          localStorage.setItem("userLocation", JSON.stringify(result));
+          resolve(result);
+        })
+        .catch((error) => console.log("error", error));
+    });
+  }
+
+  function predictCropByCurrentData() {
+    let data = localStorage.getItem("currentSoilData");
+    console.log(data);
+    var requestOptions = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data }),
+    };
+
+    fetch("http://localhost:5000/crop-predict", requestOptions)
+    .then((response) => response.text())
+    .then(data => {
+      const parser = new DOMParser();
+      const newDoc = parser.parseFromString(data, 'text/html');
+      document.replaceChild(newDoc.documentElement, document.documentElement);
+      history.pushState({}, '', '/crop-predict');
+    })
+    .catch((error) => console.log("error", error));
+  }
+</script>
+
+{% endblock %}
