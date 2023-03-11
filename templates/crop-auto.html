@@ -256,7 +256,7 @@
       body: JSON.stringify({ data }),
     };
 
-    fetch("http://localhost:5000/crop-predict", requestOptions)
+    fetch("https://farming-assistant.up.railway.app/crop-predict", requestOptions)
     .then((response) => response.text())
     .then(data => {
       const parser = new DOMParser();
