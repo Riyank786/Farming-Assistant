@@ -4,16 +4,25 @@
   .mt-0 {
   margin-top: 50 !important;
 }
+#crop-image{
+  width: 300px;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 27px;
+    box-shadow: 0 0 16px 5px rgba(0,0,0,0.5);
+}
 </style>
 
 
 <div class="container py-2 mx-auto my-50 h-10 " style="margin: 12rem;">
   <div class="row">
       <div class="col-sm py-2 py-md-3">
-          <div class="card card-body" style="justify-content: center;">
+          <div class="card card-body" style="justify-content: center; align-items: center;">
+              <img id="crop-image" src="../static/images/crop_images/{{prediction}}.jpg"   alt='{{prediction}} image'>
                <h1 class="text-center"><b>You should grow <i>{{ prediction }} </i>in your farm</b></h1>
           </div>
       </div>
   </div>
 </div>
+
 {% endblock %}
